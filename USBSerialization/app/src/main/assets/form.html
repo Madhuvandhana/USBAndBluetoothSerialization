@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Network Configuration</title>
+    <style>
+        .password-container {
+            display: flex;
+            align-items: center;
+        }
+        .password-container input[type="password"],
+        .password-container input[type="text"] {
+            flex: 1;
+        }
+        .password-container .show-password {
+            margin-left: 10px; /* Add some space between the password field and the checkbox */
+        }
+    </style>
+</head>
+<body onload="populateNetworkSettings(); populateSsidDropdown()">
+<h2>Network Configuration</h2>
+<form id="networkForm" onsubmit="submitForm(); return false;">
+    <label for="dhcpEnabled">Enable DHCP:</label>
+    <input type="checkbox" id="dhcpEnabled" name="dhcpEnabled"><br><br>
+
+    <label for="ipAddress">IP Address:</label>
+    <input type="text" id="ipAddress" name="ipAddress"><br><br>
+
+    <label for="subnetMask">Subnet Mask:</label>
+    <input type="text" id="subnetMask" name="subnetMask"><br><br>
+
+    <label for="gateway">Gateway:</label>
+    <input type="text" id="gateway" name="gateway"><br><br>
+
+    <label for="dns1">DNS 1:</label>
+    <input type="text" id="dns1" name="dns1"><br><br>
+
+    <label for="dns2">DNS 2:</label>
+    <input type="text" id="dns2" name="dns2"><br><br>
+
+    <label for="primarySsid">Primary SSID:</label>
+    <select id="primarySsid" name="primarySsid">
+        <option value="" disabled selected>Select a primary network</option>
+    </select><br><br>
+
+    <label for="primarySsidPassword">Primary SSID Password:</label>
+    <div class="password-container">
+        <input type="password" id="primarySsidPassword" name="primarySsidPassword">
+        <input type="checkbox" class="show-password" id="showPrimaryPassword" onclick="togglePasswordVisibility('primarySsidPassword')"> Show Password
+    </div><br><br>
+
+    <label for="fallbackSsid">Fallback SSID:</label>
+    <select id="fallbackSsid" name="fallbackSsid">
+        <option value="" disabled selected>Select a fallback network</option>
+    </select><br><br>
+
+    <label for="fallbackSsidPassword">Fallback SSID Password:</label>
+    <div class="password-container">
+        <input type="password" id="fallbackSsidPassword" name="fallbackSsidPassword">
+        <input type="checkbox" class="show-password" id="showFallbackPassword" onclick="togglePasswordVisibility('fallbackSsidPassword')"> Show Password
+    </div><br><br>
+
+    <input type="submit" value="Save">
+</form>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+<script>
+    // Function to populate the form fields with network settings from query parameters
+    function getQueryParamValue(key, url) {
+        if (!url) url = window.location.href;
+        key = key.replace(/[\[\]]/g, "\\$&");
+        var regex = new RegExp("[?&]" + key + "(=([^&#]*)|&|#|$)"),
+            results = regex.exec(url);
+        if (!results) return null;
+        if (!results[2]) return '';
+        // Decode the parameter and remove leading/trailing quotes
+        return decodeURIComponent(results[2].replace(/\+/g, " ")).replace(/^"|"$/g, '');
+    }
+
+    function populateNetworkSettings() {
+        var urlParams = new URLSearchParams(window.location.search);
+        document.getElementById("dhcpEnabled").checked = urlParams.get("dhcpEnabled") === 'true';
+        document.getElementById("ipAddress").value = urlParams.get("ipAddress");
+        document.getElementById("subnetMask").value = urlParams.get("subnetMask");
+        document.getElementById("gateway").value = urlParams.get("gateway");
+        document.getElementById("dns1").value = urlParams.get("dns1");
+        document.getElementById("dns2").value = urlParams.get("dns2");
+        document.getElementById("primarySsid").value = urlParams.get("primarySsid");
+        document.getElementById("fallbackSsid").value = urlParams.get("fallbackSsid");
+    }
+
+    function populateSsidDropdown() {
+        const ssidListParam = getQueryParamValue('ssidList');
+        const selectedPrimarySsid = getQueryParamValue('primarySsid');
+        const selectedFallbackSsid = getQueryParamValue('fallbackSsid');
+
+        if (ssidListParam) {
+            const ssidList = ssidListParam.split(',');
+            const primarySsidDropdown = document.getElementById('primarySsid');
+            const fallbackSsidDropdown = document.getElementById('fallbackSsid');
+
+            ssidList.forEach(function(ssid) {
+                const primaryOption = document.createElement('option');
+                primaryOption.value = ssid;
+                primaryOption.text = ssid;
+                if (ssid === selectedPrimarySsid) {
+                    primaryOption.selected = true;
+                }
+                primarySsidDropdown.appendChild(primaryOption);
+
+                const fallbackOption = document.createElement('option');
+                fallbackOption.value = ssid;
+                fallbackOption.text = ssid;
+                if (ssid === selectedFallbackSsid) {
+                    fallbackOption.selected = true;
+                }
+                fallbackSsidDropdown.appendChild(fallbackOption);
+            });
+        }
+    }
+
+    function togglePasswordVisibility(passwordFieldId) {
+        var passwordField = document.getElementById(passwordFieldId);
+        if (passwordField.type === "password") {
+            passwordField.type = "text";
+        } else {
+            passwordField.type = "password";
+        }
+    }
+
+    const key = "<ENCRYPTION_KEY_PLACEHOLDER>";
+    const iv = "<IV_PLACEHOLDER>";
+
+function padOrTrimKey(key) {
+    const requiredKeyLength = 32;  // For AES-256, the key must be 32 bytes (256 bits)
+    const encoder = new TextEncoder();
+    let keyBytes = encoder.encode(key);
+
+    if (keyBytes.length > requiredKeyLength) {
+        keyBytes = keyBytes.slice(0, requiredKeyLength);
+    } else if (keyBytes.length < requiredKeyLength) {
+        const paddedKey = new Uint8Array(requiredKeyLength);
+        paddedKey.set(keyBytes); 
+        keyBytes = paddedKey;
+    }
+
+    return keyBytes;
+}
+
+async function encryptData(plaintext) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(plaintext);
+    const decodedKey = new Uint8Array(atob(key).split('').map(c => c.charCodeAt(0)));
+    const decodedIv = new Uint8Array(atob(iv).split('').map(c => c.charCodeAt(0)));
+
+    return crypto.subtle.importKey(
+        "raw",
+        decodedKey,
+        { name: "AES-CBC" },
+        false,
+        ["encrypt"]
+    ).then(importedKey => {
+        return crypto.subtle.encrypt(
+            { name: "AES-CBC", iv: decodedIv },
+            importedKey,
+            data
+        );
+    }).then(encryptedData => {
+        return btoa(String.fromCharCode(...new Uint8Array(encryptedData)));
+    }).catch(error => {
+        alert("Error during encryption: " + error);
+        console.error("Error during encryption:", error);
+    });
+}
+
+
+
+async function submitForm(event) {
+        var dhcpEnabled = document.getElementById("dhcpEnabled").checked;
+        var ipAddress = document.getElementById("ipAddress").value;
+        var subnetMask = document.getElementById("subnetMask").value;
+        var gateway = document.getElementById("gateway").value;
+        var dns1 = document.getElementById("dns1").value;
+        var dns2 = document.getElementById("dns2").value;
+        var primarySsid = document.getElementById("primarySsid").value;
+        var fallbackSsid = document.getElementById("fallbackSsid").value;
+        var primarySsidPassword = document.getElementById("primarySsidPassword").value;
+        var fallbackSsidPassword = document.getElementById("fallbackSsidPassword").value;
+
+        try {
+        const encryptedPrimaryPassword = await encryptData(primarySsidPassword);
+        const encryptedFallbackPassword = await encryptData(fallbackSsidPassword);
+
+        var formData = {
+            dhcpEnabled: dhcpEnabled,
+            ipAddress: ipAddress,
+            subnetMask: subnetMask,
+            gateway: gateway,
+            dns1: dns1,
+            dns2: dns2,
+            primarySsid: primarySsid,
+            primarySsidPassword: encryptedPrimaryPassword,
+            fallbackSsid: fallbackSsid,
+            fallbackSsidPassword: encryptedFallbackPassword
+        };
+
+            var queryParams = Object.keys(formData)
+                .map(function (key) {
+                    return encodeURIComponent(key) + '=' + encodeURIComponent(formData[key]);
+                })
+                .join('&');
+
+            var redirectUrl = "myapp://formsubmission?" + queryParams;
+            window.location.href = redirectUrl;
+
+            setTimeout(function() {
+                window.close();
+            }, 1000);
+        } catch (error) {
+            alert("Error during form submission: " + error);
+    }
+    }
+</script>
+</body>
+</html>

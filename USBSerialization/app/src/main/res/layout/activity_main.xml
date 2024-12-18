@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".presentation.MainActivity">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="16dp">
+        <Button
+            android:id="@+id/buttonBluetooth"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:textColor="@color/black"
+            android:layout_height="wrap_content"
+            android:text="@string/bluetooth_devices"
+            android:onClick="openBluetoothActivity"/>
+
+        <!-- Button to navigate from DeviceFragment to TerminalFragment -->
+        <Button
+            android:id="@+id/buttonDevice"
+            android:layout_width="0dp"
+            android:textColor="@color/black"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:text="@string/usb_device"
+            android:onClick="openDeviceActivity"/>
+
+        <Button
+            android:id="@+id/btn_launch_form"
+            android:layout_width="0dp"
+            android:textColor="@color/black"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:text="@string/launch_server"
+            android:onClick="openWebBrowser"/>
+
+
+    </LinearLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>
